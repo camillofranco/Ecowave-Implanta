@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ecowave Implanta</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- External Libraries -->
+    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+    <header class="top-nav">
+        <div class="logo">ECOWAVE<span>_IMPLANTA</span></div>
+        <button id="btnAdminAuth" class="btn-icon"><i class="fas fa-lock"></i></button>
+    </header>
+
+    <main id="app-container">
+        <!-- View: Technician Dashboard -->
+        <section id="viewTechDashboard" class="view active">
+            <div class="header-action">
+                <h2>Condomínios em Andamento</h2>
+                <button id="btnNewCondo" class="btn-primary"><i class="fas fa-plus"></i> Novo Cadastro</button>
+            </div>
+            
+            <div id="condoList" class="list-container">
+                <!-- Condo items will be injected here -->
+                <div class="empty-state">Nenhum condomínio cadastrado ainda.</div>
+            </div>
+        </section>
+
+        <!-- View: Add Installation (Unit Form) -->
+        <section id="viewInstallationForm" class="view">
+            <div class="header-action">
+                <button id="btnBackToTech" class="btn-icon"><i class="fas fa-arrow-left"></i></button>
+                <h2 id="formCondoName">Nome do Condomínio</h2>
+                <span class="spacer"></span>
+            </div>
+
+            <form id="installationForm" class="form-container">
+                <input type="hidden" id="condoId">
+                
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-map-marker-alt"></i> Localização da Unidade</div>
+                    <div class="card-body">
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label>Bloco / Torre</label>
+                                <input type="text" id="iptBloco" placeholder="Ex: A" required>
+                            </div>
+                            <div class="input-group">
+                                <label>Apartamento</label>
+                                <input type="text" id="iptApto" placeholder="Ex: 101" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" id="waterMetersContainer">
+                    <div class="card-header">
+                        <div><i class="fas fa-tint"></i> Medidores de Água</div>
+                        <button type="button" class="btn-text" id="btnAddWaterMeter"><i class="fas fa-plus"></i> Adicionar</button>
+                    </div>
+                    <div class="card-body meters-list" id="waterMetersList">
+                        <!-- Dynamic Water Meters -->
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-fire"></i> / <i class="fas fa-bolt"></i> Outros Medidores (Opcional)</div>
+                    <div class="card-body">
+                        <div class="input-group">
+                            <label>Medidor de Gás (Série)</label>
+                            <div class="scan-input">
+                                <input type="text" id="iptGas" placeholder="Nº de Série">
+                                <button type="button" class="btn-scan" data-target="iptGas"><i class="fas fa-qrcode"></i></button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-3">
+                            <label>Medidor de Energia (Série)</label>
+                            <div class="scan-input">
+                                <input type="text" id="iptPower" placeholder="Nº de Série">
+                                <button type="button" class="btn-scan" data-target="iptPower"><i class="fas fa-qrcode"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-broadcast-tower"></i> Transmissor (Opcional)</div>
+                    <div class="card-body">
+                        <div class="input-group">
+                            <label>Número do Transmissor</label>
+                            <div class="scan-input">
+                                <input type="text" id="iptTransmitter" placeholder="Nº do Transmissor">
+                                <button type="button" class="btn-scan" data-target="iptTransmitter"><i class="fas fa-qrcode"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-success btn-large mt-4">
+                    <i class="fas fa-check-circle"></i> SALVAR UNIDADE (BLOQUEAR)
+                </button>
+            </form>
+        </section>
+
+        <!-- View: Admin Dashboard -->
+        <section id="viewAdminDashboard" class="view">
+            <div class="header-action">
+                <h2>Painel Administrativo</h2>
+                <button id="btnLogoutAdmin" class="btn-icon"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+            
+            <div class="card mb-4 bg-glass-blue">
+                <div class="card-body text-center">
+                    <h3>Exportar Dados</h3>
+                    <p class="text-sm op-7 mb-3">Gera arquivo .xlsx completo com as coordenadas GPS e horários de cadastro.</p>
+                    <div class="input-row">
+                        <select id="exportCondoSelect" class="w-full">
+                            <option value="all">Todos os Condomínios</option>
+                        </select>
+                    </div>
+                    <button id="btnExportExcel" class="btn-primary mt-3 w-full"><i class="fas fa-file-excel"></i> Baixar Relatório XLS</button>
+                </div>
+            </div>
+
+            <div id="adminCondoList" class="list-container">
+                 <!-- Admin view of condos with entry counts -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modals & Overlays -->
+    <div id="modalScanner" class="overlay" style="display:none;">
+        <div class="modal-content scanner-modal">
+            <div class="modal-header">
+                <h3>Escanear Código</h3>
+                <button type="button" class="btn-close-modal" id="btnCloseScanner"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="scanner-container" id="reader"></div>
+            <p class="text-center text-sm mt-3 op-7">Aponte a câmera para o código de barras ou QR Code.</p>
+        </div>
+    </div>
+
+    <div id="modalAuth" class="overlay" style="display:none;">
+        <div class="modal-content auth-modal">
+            <div class="modal-header">
+                <h3>Acesso Restrito</h3>
+                <button type="button" class="btn-close-modal" id="btnCloseAuth"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label>Senha do Administrador</label>
+                    <input type="password" id="iptAdminPassword" placeholder="******">
+                </div>
+                <button id="btnSubmitAuth" class="btn-primary w-full mt-3">Acessar Painel</button>
+                <p id="authErrorMsg" class="text-danger text-sm mt-2 text-center" style="display:none;">Senha incorreta.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template for Water Meter Item -->
+    <template id="tmpl-water-meter">
+        <div class="meter-item">
+            <div class="meter-header">
+                <select class="meter-type" required>
+                    <option value="Agua Fria">Água Fria</option>
+                    <option value="Agua Quente">Água Quente</option>
+                </select>
+                <button type="button" class="btn-icon text-danger btn-remove-meter"><i class="fas fa-trash"></i></button>
+            </div>
+            <div class="scan-input">
+                <input type="text" class="meter-serial" placeholder="Nº de Série" required>
+                <button type="button" class="btn-scan" data-target="dynamic"><i class="fas fa-qrcode"></i></button>
+            </div>
+        </div>
+    </template>
+
+    <script src="js/db.js"></script>
+    <script src="js/scanner.js"></script>
+    <script src="js/export.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
