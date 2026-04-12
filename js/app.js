@@ -171,18 +171,33 @@ const App = {
         btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> OBTENDO GPS E ENVIANDO FOTOS...';
 
         try {
-            // Get GPS Data
+            // Get GPS Data (Fast timeout so it doesn't hang)
             const gps = await this.getCurrentPosition();
 
-            // Collect files
-            const gasFile = document.getElementById('iptGasPhoto').files[0];
-            const powerFile = document.getElementById('iptPowerPhoto').files[0];
-
-            let gasPhotoUrl = null;
-            if (gasFile) gasPhotoUrl = await DBService.uploadPhoto(gasFile, 'gas');
+            // Collect Files for Parallel Upload
+            const uploadPromises = [];
             
-            let powerPhotoUrl = null;
-            if (powerFile) powerPhotoUrl = await DBService.uploadPhoto(powerFile, 'power');
+            const gasFile = document.getElementById('iptGasPhoto') ? document.getElementById('iptGasPhoto').files[0] : null;
+            const powerFile = document.getElementById('iptPowerPhoto') ? document.getElementById('iptPowerPhoto').files[0] : null;
+
+            let gasUpload = gasFile ? DBService.uploadPhoto(gasFile, 'gas') : Promise.resolve(null);
+            let powerUpload = powerFile ? DBService.uploadPhoto(powerFile, 'power') : Promise.resolve(null);
+
+            const meterItems = document.querySelectorAll('#waterMetersList .meter-item');
+            const waterUploads = Array.from(meterItems).map(item => {
+                const fileInput = item.querySelector('.meter-photo');
+                if (fileInput && fileInput.files[0]) {
+                    return DBService.uploadPhoto(fileInput.files[0], 'water');
+                }
+                return Promise.resolve(null);
+            });
+
+            // Execute all uploads simultaneously
+            const [gasPhotoUrl, powerPhotoUrl, ...waterPhotoUrls] = await Promise.all([
+                gasUpload, 
+                powerUpload, 
+                ...waterUploads
+            ]);
 
             // Collect Data
             const iptGas = document.getElementById('iptGas').value.trim();
@@ -195,13 +210,13 @@ const App = {
                 
                 gasMeter: iptGas ? {
                     serial: iptGas,
-                    transmitter: document.getElementById('iptGasTransmitter').value.trim() || null,
+                    transmitter: document.getElementById('iptGasTransmitter') ? document.getElementById('iptGasTransmitter').value.trim() : null,
                     photo: gasPhotoUrl
                 } : null,
                 
                 powerMeter: iptPower ? {
                     serial: iptPower,
-                    transmitter: document.getElementById('iptPowerTransmitter').value.trim() || null,
+                    transmitter: document.getElementById('iptPowerTransmitter') ? document.getElementById('iptPowerTransmitter').value.trim() : null,
                     photo: powerPhotoUrl
                 } : null,
                 
@@ -209,22 +224,16 @@ const App = {
                 gps: gps
             };
 
-            const meterItems = document.querySelectorAll('#waterMetersList .meter-item');
-            for (let item of meterItems) {
+            Array.from(meterItems).forEach((item, index) => {
                 const type = item.querySelector('.meter-type').value;
                 const serial = item.querySelector('.meter-serial').value.trim();
                 const transmitter = item.querySelector('.meter-transmitter').value.trim() || null;
-                const fileInput = item.querySelector('.meter-photo');
-                
-                let wPhotoUrl = null;
-                if (fileInput && fileInput.files[0]) {
-                    wPhotoUrl = await DBService.uploadPhoto(fileInput.files[0], 'water');
-                }
+                const wPhotoUrl = waterPhotoUrls[index];
 
                 if (serial) {
                     formData.waterMeters.push({ type, serial, transmitter, photo: wPhotoUrl });
                 }
-            }
+            });
 
             // Save to Firestore DB
             await DBService.addUnit(formData);
@@ -260,7 +269,7 @@ const App = {
                     console.warn(`GPS Error: ${err.message}`);
                     resolve(null);
                 },
-                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                { enableHighAccuracy: false, timeout: 3000, maximumAge: 10000 }
             );
         });
     },

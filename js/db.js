@@ -63,15 +63,55 @@ const DBService = {
     async uploadPhoto(file, path) {
         if (!file) return null;
         try {
+            const compressedBlob = await this.compressImage(file);
             const storageRef = storage.ref();
             const photoRef = storageRef.child(`photos/${path}_${Date.now()}_${file.name}`);
-            const snapshot = await photoRef.put(file);
+            const snapshot = await photoRef.put(compressedBlob);
             const downloadURL = await snapshot.ref.getDownloadURL();
             return downloadURL;
         } catch (e) {
             console.error("Upload error: ", e);
             return null;
         }
+    },
+
+    compressImage(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = event => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 1080;
+                    const MAX_HEIGHT = 1080;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob((blob) => {
+                        resolve(blob);
+                    }, 'image/jpeg', 0.6); // Compress to 60% quality JPEG
+                };
+            };
+        });
     },
 
     async getAllUnitsForExport(condoId = 'all') {
