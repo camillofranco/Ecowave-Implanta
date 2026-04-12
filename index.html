@@ -9,7 +9,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <!-- External Libraries -->
-    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-storage-compat.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
@@ -18,7 +20,7 @@
     <header class="top-nav">
         <div class="logo">
             <img src="assets/ecowave.png" alt="Ecowave Logo" class="logo-img">
-            <span>_IMPLANTA</span>
+            <span>IMPLANTA</span>
         </div>
         <button id="btnAdminAuth" class="btn-icon"><i class="fas fa-lock"></i></button>
     </header>
@@ -92,6 +94,13 @@
                                 <button type="button" class="btn-scan" data-target="iptGasTransmitter"><i class="fas fa-qrcode"></i></button>
                             </div>
                         </div>
+                        <div class="input-group mt-2">
+                            <label>Foto da Instalação do Gás</label>
+                            <div class="photo-capture">
+                                <input type="file" accept="image/*" capture="environment" id="iptGasPhoto" class="photo-input">
+                                <img id="previewGasPhoto" class="photo-preview" style="display:none">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -111,6 +120,13 @@
                             <div class="scan-input">
                                 <input type="text" id="iptPowerTransmitter" placeholder="Nº do Transmissor">
                                 <button type="button" class="btn-scan" data-target="iptPowerTransmitter"><i class="fas fa-qrcode"></i></button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <label>Foto da Instalação de Energia</label>
+                            <div class="photo-capture">
+                                <input type="file" accept="image/*" capture="environment" id="iptPowerPhoto" class="photo-input">
+                                <img id="previewPowerPhoto" class="photo-preview" style="display:none">
                             </div>
                         </div>
                     </div>
@@ -198,6 +214,13 @@
                 <div class="scan-input">
                     <input type="text" class="meter-transmitter" placeholder="Série do Transmissor">
                     <button type="button" class="btn-scan" data-target="dynamic"><i class="fas fa-qrcode"></i></button>
+                </div>
+            </div>
+            <div class="input-group mt-2 mb-2">
+                <label>Foto da Instalação (Água)</label>
+                <div class="photo-capture">
+                    <input type="file" accept="image/*" capture="environment" class="photo-input meter-photo">
+                    <img class="photo-preview meter-preview" style="display:none">
                 </div>
             </div>
         </div>

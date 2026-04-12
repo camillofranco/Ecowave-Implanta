@@ -114,6 +114,20 @@ input:focus, select:focus { outline: none; border-color: var(--primary); }
 }
 .btn-scan:active { background: rgba(255,255,255,0.1); }
 
+/* Photo Input Structure */
+.photo-capture {
+    display: flex; flex-direction: column; gap: 0.5rem;
+}
+.photo-input {
+    background: var(--card-bg);
+}
+.photo-preview {
+    max-width: 100%; max-height: 200px;
+    border-radius: 8px; object-fit: contain;
+    border: 1px solid var(--border);
+    margin-top: 0.5rem;
+}
+
 /* Views & Layout */
 #app-container { padding: 1.5rem; max-width: 800px; margin: 0 auto; }
 .view { display: none; animation: fadeIn 0.3s ease; }

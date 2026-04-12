@@ -1,46 +1,50 @@
 // js/db.js
-// Initialize Dexie for local storage
-const db = new Dexie('EcowaveImplantaDB');
+// Firebase Cloud Implementation
 
-// Define database schema
-// Condominiums just stores the name
-// Units stores the blind data for Techs and full data for Admins.
-db.version(1).stores({
-    condominiums: '++id, name, createdAt',
-    units: '++id, condoId, bloco, apto, data_blind, data_full, createdAt'
-});
+const firebaseConfig = {
+    apiKey: "AIzaSyCQU9BqER88aR90G3IeXcfdPcd22f8L4UY",
+    authDomain: "ecowave-implanta.firebaseapp.com",
+    projectId: "ecowave-implanta",
+    storageBucket: "ecowave-implanta.firebasestorage.app",
+    messagingSenderId: "538343315852",
+    appId: "1:538343315852:web:cdf5c2c019c7cb77b15ea9",
+    measurementId: "G-20Z4VG5ZR3"
+};
 
-// A blind record structure for technicians
-// It doesn't contain serial numbers, just what they added.
-// data_full contains all the sensitive data for the excel export.
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const storage = firebase.storage();
 
 const DBService = {
     async getCondominiums() {
-        return await db.condominiums.orderBy('createdAt').reverse().toArray();
+        const snapshot = await db.collection('condominiums').orderBy('createdAt', 'desc').get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     },
 
     async addCondominium(name) {
-        return await db.condominiums.add({
+        return await db.collection('condominiums').add({
             name: name,
             createdAt: new Date().toISOString()
         });
     },
 
     async getUnitsByCondo(condoId) {
-        return await db.units.where({ condoId: condoId }).toArray();
+        const snapshot = await db.collection('units').where('condoId', '==', condoId).get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     },
 
     async getUnitCountByCondo(condoId) {
-        return await db.units.where({ condoId: condoId }).count();
+        const snapshot = await db.collection('units').where('condoId', '==', condoId).get();
+        return snapshot.size;
     },
 
     async addUnit(unitData) {
-        // unitData shape: { condoId, bloco, apto, waterMeters: [], gasMeter, powerMeter, transmitter, gps: { lat, lng } }
-        
-        // Creating blind data so tech can see what they registered but NOT the serials
+        // Create blind data (so later we can restrict access if needed via Firestore Security Rules,
+        // but for now, tech just sees units without serials)
         const blindData = {
             resumo: `${unitData.waterMeters.length} Água, ${unitData.gasMeter ? '1 Gás' : 'Sem Gás'}, ${unitData.powerMeter ? '1 Energia' : 'Sem Energia'}`,
-            hasTransmitter: !!unitData.transmitter
+            hasTransmitter: true
         };
 
         const entity = {
@@ -52,14 +56,31 @@ const DBService = {
             createdAt: new Date().toISOString()
         };
 
-        return await db.units.add(entity);
+        return await db.collection('units').add(entity);
+    },
+
+    // Upload photo to Firebase Storage and return public URL
+    async uploadPhoto(file, path) {
+        if (!file) return null;
+        try {
+            const storageRef = storage.ref();
+            const photoRef = storageRef.child(`photos/${path}_${Date.now()}_${file.name}`);
+            const snapshot = await photoRef.put(file);
+            const downloadURL = await snapshot.ref.getDownloadURL();
+            return downloadURL;
+        } catch (e) {
+            console.error("Upload error: ", e);
+            return null;
+        }
     },
 
     async getAllUnitsForExport(condoId = 'all') {
+        let snapshot;
         if (condoId === 'all') {
-            return await db.units.toArray();
+            snapshot = await db.collection('units').get();
         } else {
-            return await db.units.where({ condoId: parseInt(condoId) }).toArray();
+            snapshot = await db.collection('units').where('condoId', '==', condoId).get();
         }
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     }
 };

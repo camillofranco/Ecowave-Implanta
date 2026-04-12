@@ -33,6 +33,7 @@ const ExportService = {
                 { header: 'Tipo Equipamento', key: 'tipo', width: 20 },
                 { header: 'Número de Série', key: 'serie', width: 25 },
                 { header: 'Série Transmissor', key: 'transmissor', width: 25 },
+                { header: 'Link da Foto', key: 'foto', width: 40 },
                 { header: 'Latitude GPS', key: 'lat', width: 15 },
                 { header: 'Longitude GPS', key: 'lng', width: 15 }
             ];
@@ -59,33 +60,39 @@ const ExportService = {
                 // Add Water Meters (1 row per meter)
                 if (unit.data_full.waterMeters && unit.data_full.waterMeters.length > 0) {
                     unit.data_full.waterMeters.forEach(wm => {
-                        worksheet.addRow({ 
+                        const row = worksheet.addRow({ 
                             ...baseRow, 
                             tipo: wm.type, 
                             serie: wm.serial,
-                            transmissor: wm.transmitter || 'N/A'
+                            transmissor: wm.transmitter || 'N/A',
+                            foto: wm.photo ? { text: 'Ver Foto', hyperlink: wm.photo } : 'Sem Foto'
                         });
+                        row.getCell('foto').font = wm.photo ? { color: { argb: 'FF0000FF' }, underline: true } : {};
                     });
                 }
 
                 // Add Gas Meter
                 if (unit.data_full.gasMeter) {
-                    worksheet.addRow({ 
+                    const row = worksheet.addRow({ 
                         ...baseRow, 
                         tipo: 'Gás', 
                         serie: unit.data_full.gasMeter.serial,
-                        transmissor: unit.data_full.gasMeter.transmitter || 'N/A'
+                        transmissor: unit.data_full.gasMeter.transmitter || 'N/A',
+                        foto: unit.data_full.gasMeter.photo ? { text: 'Ver Foto', hyperlink: unit.data_full.gasMeter.photo } : 'Sem Foto'
                     });
+                    row.getCell('foto').font = unit.data_full.gasMeter.photo ? { color: { argb: 'FF0000FF' }, underline: true } : {};
                 }
 
                 // Add Power Meter
                 if (unit.data_full.powerMeter) {
-                    worksheet.addRow({ 
+                    const row = worksheet.addRow({ 
                         ...baseRow, 
                         tipo: 'Energia', 
                         serie: unit.data_full.powerMeter.serial,
-                        transmissor: unit.data_full.powerMeter.transmitter || 'N/A'
+                        transmissor: unit.data_full.powerMeter.transmitter || 'N/A',
+                        foto: unit.data_full.powerMeter.photo ? { text: 'Ver Foto', hyperlink: unit.data_full.powerMeter.photo } : 'Sem Foto'
                     });
+                    row.getCell('foto').font = unit.data_full.powerMeter.photo ? { color: { argb: 'FF0000FF' }, underline: true } : {};
                 }
             });
 

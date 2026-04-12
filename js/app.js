@@ -1,14 +1,14 @@
 // js/app.js
 // Main Application Logic
 
-const ADMIN_PASSWORD = "eco"; // Initial simple password, can be changed later
+const ADMIN_PASSWORD = "eco"; // Initial simple password
 
 const App = {
     currentCondoId: null,
 
     init() {
         this.bindEvents();
-        this.loadTechDashboard();
+        setTimeout(() => this.loadTechDashboard(), 500); // Give Firebase a moment to init
     },
 
     bindEvents() {
@@ -37,6 +37,10 @@ const App = {
         // Export Management
         document.getElementById('btnExportExcel').addEventListener('click', () => {
              const condoId = document.getElementById('exportCondoSelect').value;
+             if (!condoId) {
+                 alert("Por favor, selecione um condomínio para exportar.");
+                 return;
+             }
              ExportService.generateExcel(condoId);
         });
 
@@ -51,6 +55,18 @@ const App = {
                     ScannerService.startScanner(input);
                 } else {
                     ScannerService.startScanner(targetId);
+                }
+            }
+        });
+
+        // Global Photo Preview delegation
+        document.addEventListener('change', (e) => {
+            if (e.target.classList.contains('photo-input')) {
+                const file = e.target.files[0];
+                if (file) {
+                    const preview = e.target.closest('.photo-capture').querySelector('.photo-preview');
+                    preview.src = URL.createObjectURL(file);
+                    preview.style.display = 'block';
                 }
             }
         });
@@ -69,29 +85,34 @@ const App = {
 
     async loadTechDashboard() {
         const listDiv = document.getElementById('condoList');
-        listDiv.innerHTML = '';
+        // keep loading state
         
-        const condos = await DBService.getCondominiums();
-        
-        if (condos.length === 0) {
-            listDiv.innerHTML = '<div class="empty-state">Nenhum condomínio cadastrado ainda.</div>';
-            return;
-        }
+        try {
+            const condos = await DBService.getCondominiums();
+            
+            if (condos.length === 0) {
+                listDiv.innerHTML = '<div class="empty-state">Nenhum condomínio cadastrado ainda.</div>';
+                return;
+            }
 
-        for (let c of condos) {
-            let count = await DBService.getUnitCountByCondo(c.id);
-            const div = document.createElement('div');
-            div.className = 'list-item';
-            div.innerHTML = `
-                <div>
-                    <div class="list-item-title">${c.name}</div>
-                    <div class="list-item-subtitle">${new Date(c.createdAt).toLocaleDateString('pt-BR')} • ${count} unidades registradas</div>
-                </div>
-                <button class="btn-primary" onclick="App.openInstallationForm(${c.id}, '${c.name.replace(/'/g, "\\'")}')">
-                    + Unidade
-                </button>
-            `;
-            listDiv.appendChild(div);
+            listDiv.innerHTML = '';
+            for (let c of condos) {
+                let count = await DBService.getUnitCountByCondo(c.id); // Firestore id
+                const div = document.createElement('div');
+                div.className = 'list-item';
+                div.innerHTML = `
+                    <div>
+                        <div class="list-item-title">${c.name}</div>
+                        <div class="list-item-subtitle">${new Date(c.createdAt).toLocaleDateString('pt-BR')} • ${count} unidades registradas</div>
+                    </div>
+                    <button class="btn-primary" onclick="App.openInstallationForm('${c.id}', '${c.name.replace(/'/g, "\\'")}')">
+                        + Unidade
+                    </button>
+                `;
+                listDiv.appendChild(div);
+            }
+        } catch(e) {
+             listDiv.innerHTML = '<div class="empty-state">Carregando condomínios da nuvem... (Verifique a permissão do banco)</div>';
         }
     },
 
@@ -111,6 +132,11 @@ const App = {
         // Reset Form
         document.getElementById('installationForm').reset();
         document.getElementById('waterMetersList').innerHTML = '';
+        document.querySelectorAll('.photo-preview').forEach(img => {
+            img.src = '';
+            img.style.display = 'none';
+        });
+        
         this.addWaterMeterRow(); // At least one water meter by default
 
         this.switchView('viewInstallationForm');
@@ -133,29 +159,41 @@ const App = {
         
         const btnSubmit = e.target.querySelector('button[type="submit"]');
         btnSubmit.disabled = true;
-        btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> OBTENDO GPS...';
+        btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> OBTENDO GPS E ENVIANDO FOTOS...';
 
         try {
             // Get GPS Data
             const gps = await this.getCurrentPosition();
+
+            // Collect files
+            const gasFile = document.getElementById('iptGasPhoto').files[0];
+            const powerFile = document.getElementById('iptPowerPhoto').files[0];
+
+            let gasPhotoUrl = null;
+            if (gasFile) gasPhotoUrl = await DBService.uploadPhoto(gasFile, 'gas');
+            
+            let powerPhotoUrl = null;
+            if (powerFile) powerPhotoUrl = await DBService.uploadPhoto(powerFile, 'power');
 
             // Collect Data
             const iptGas = document.getElementById('iptGas').value.trim();
             const iptPower = document.getElementById('iptPower').value.trim();
 
             const formData = {
-                condoId: parseInt(document.getElementById('condoId').value),
+                condoId: document.getElementById('condoId').value, // now string from Firestore
                 bloco: document.getElementById('iptBloco').value.trim(),
                 apto: document.getElementById('iptApto').value.trim(),
                 
                 gasMeter: iptGas ? {
                     serial: iptGas,
-                    transmitter: document.getElementById('iptGasTransmitter').value.trim() || null
+                    transmitter: document.getElementById('iptGasTransmitter').value.trim() || null,
+                    photo: gasPhotoUrl
                 } : null,
                 
                 powerMeter: iptPower ? {
                     serial: iptPower,
-                    transmitter: document.getElementById('iptPowerTransmitter').value.trim() || null
+                    transmitter: document.getElementById('iptPowerTransmitter').value.trim() || null,
+                    photo: powerPhotoUrl
                 } : null,
                 
                 waterMeters: [],
@@ -163,19 +201,26 @@ const App = {
             };
 
             const meterItems = document.querySelectorAll('#waterMetersList .meter-item');
-            meterItems.forEach(item => {
+            for (let item of meterItems) {
                 const type = item.querySelector('.meter-type').value;
                 const serial = item.querySelector('.meter-serial').value.trim();
                 const transmitter = item.querySelector('.meter-transmitter').value.trim() || null;
-                if (serial) {
-                    formData.waterMeters.push({ type, serial, transmitter });
+                const fileInput = item.querySelector('.meter-photo');
+                
+                let wPhotoUrl = null;
+                if (fileInput && fileInput.files[0]) {
+                    wPhotoUrl = await DBService.uploadPhoto(fileInput.files[0], 'water');
                 }
-            });
 
-            // Save to LocalDB (Blind data feature handled in db.js)
+                if (serial) {
+                    formData.waterMeters.push({ type, serial, transmitter, photo: wPhotoUrl });
+                }
+            }
+
+            // Save to Firestore DB
             await DBService.addUnit(formData);
 
-            alert(`✅ Unidade ${formData.bloco}-${formData.apto} registrada com sucesso!\n\nOs dados sensíveis foram salvos em segurança.`);
+            alert(`✅ Unidade ${formData.bloco}-${formData.apto} registrada com sucesso na nuvem!`);
             
             // Return to Tech Dashboard
             this.switchView('viewTechDashboard');
@@ -232,8 +277,8 @@ const App = {
         const listDiv = document.getElementById('adminCondoList');
         const select = document.getElementById('exportCondoSelect');
         
-        listDiv.innerHTML = '';
-        select.innerHTML = '<option value="all">Todos os Condomínios e Unidades</option>';
+        listDiv.innerHTML = '<div class="empty-state">Sincronizando com a Nuvem...</div>';
+        select.innerHTML = '<option value="" disabled selected>Selecione um Condomínio</option>';
         
         const condos = await DBService.getCondominiums();
         
@@ -241,6 +286,8 @@ const App = {
             listDiv.innerHTML = '<div class="empty-state">Nenhum dado cadastrado para exportação.</div>';
             return;
         }
+        
+        listDiv.innerHTML = '';
 
         for (let c of condos) {
             // Fill select
@@ -250,13 +297,13 @@ const App = {
             select.appendChild(opt);
 
             // Fill list
-            let units = await DBService.getUnitsByCondo(c.id);
+            let count = await DBService.getUnitCountByCondo(c.id);
             const div = document.createElement('div');
             div.className = 'list-item';
             div.innerHTML = `
                 <div>
                     <div class="list-item-title">${c.name}</div>
-                    <div class="list-item-subtitle">${units.length} unidades totais no banco.</div>
+                    <div class="list-item-subtitle">${count} unidades totais na nuvem.</div>
                 </div>
             `;
             listDiv.appendChild(div);
