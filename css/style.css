@@ -47,6 +47,11 @@ body {
 .logo span {
     color: var(--primary);
 }
+.logo-img {
+    height: 28px;
+    margin-right: 8px;
+    vertical-align: middle;
+}
 
 /* Base UI Elements */
 .btn-primary, .btn-success {

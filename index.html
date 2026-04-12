@@ -16,7 +16,10 @@
 </head>
 <body>
     <header class="top-nav">
-        <div class="logo">ECOWAVE<span>_IMPLANTA</span></div>
+        <div class="logo">
+            <img src="assets/ecowave.png" alt="Ecowave Logo" class="logo-img">
+            <span>_IMPLANTA</span>
+        </div>
         <button id="btnAdminAuth" class="btn-icon"><i class="fas fa-lock"></i></button>
     </header>
 
@@ -67,38 +70,47 @@
                         <button type="button" class="btn-text" id="btnAddWaterMeter"><i class="fas fa-plus"></i> Adicionar</button>
                     </div>
                     <div class="card-body meters-list" id="waterMetersList">
-                        <!-- Dynamic Water Meters -->
+                        <!-- Dynamic Water Meters with Transmitters -->
                     </div>
                 </div>
 
                 <div class="card">
-                    <div class="card-header"><i class="fas fa-fire"></i> / <i class="fas fa-bolt"></i> Outros Medidores (Opcional)</div>
-                    <div class="card-body">
-                        <div class="input-group">
-                            <label>Medidor de Gás (Série)</label>
+                    <div class="card-header"><i class="fas fa-fire"></i> Medidor de Gás (Opcional)</div>
+                    <div class="card-body meter-item" style="border: none; background: transparent; padding: 0;">
+                        <input type="hidden" id="iptGasType" value="Gás">
+                        <div class="input-group mb-3">
+                            <label>Série do Medidor</label>
                             <div class="scan-input">
                                 <input type="text" id="iptGas" placeholder="Nº de Série">
                                 <button type="button" class="btn-scan" data-target="iptGas"><i class="fas fa-qrcode"></i></button>
                             </div>
                         </div>
-                        <div class="input-group mt-3">
-                            <label>Medidor de Energia (Série)</label>
+                        <div class="input-group">
+                            <label>Série do Transmissor</label>
                             <div class="scan-input">
-                                <input type="text" id="iptPower" placeholder="Nº de Série">
-                                <button type="button" class="btn-scan" data-target="iptPower"><i class="fas fa-qrcode"></i></button>
+                                <input type="text" id="iptGasTransmitter" placeholder="Nº do Transmissor">
+                                <button type="button" class="btn-scan" data-target="iptGasTransmitter"><i class="fas fa-qrcode"></i></button>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="card">
-                    <div class="card-header"><i class="fas fa-broadcast-tower"></i> Transmissor (Opcional)</div>
-                    <div class="card-body">
-                        <div class="input-group">
-                            <label>Número do Transmissor</label>
+                    <div class="card-header"><i class="fas fa-bolt"></i> Medidor de Energia (Opcional)</div>
+                    <div class="card-body meter-item" style="border: none; background: transparent; padding: 0;">
+                        <input type="hidden" id="iptPowerType" value="Energia">
+                        <div class="input-group mb-3">
+                            <label>Série do Medidor</label>
                             <div class="scan-input">
-                                <input type="text" id="iptTransmitter" placeholder="Nº do Transmissor">
-                                <button type="button" class="btn-scan" data-target="iptTransmitter"><i class="fas fa-qrcode"></i></button>
+                                <input type="text" id="iptPower" placeholder="Nº de Série">
+                                <button type="button" class="btn-scan" data-target="iptPower"><i class="fas fa-qrcode"></i></button>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Série do Transmissor</label>
+                            <div class="scan-input">
+                                <input type="text" id="iptPowerTransmitter" placeholder="Nº do Transmissor">
+                                <button type="button" class="btn-scan" data-target="iptPowerTransmitter"><i class="fas fa-qrcode"></i></button>
                             </div>
                         </div>
                     </div>
@@ -120,7 +132,7 @@
             <div class="card mb-4 bg-glass-blue">
                 <div class="card-body text-center">
                     <h3>Exportar Dados</h3>
-                    <p class="text-sm op-7 mb-3">Gera arquivo .xlsx completo com as coordenadas GPS e horários de cadastro.</p>
+                    <p class="text-sm op-7 mb-3">Gera arquivo .xlsx completo com as coordenadas GPS e horários.</p>
                     <div class="input-row">
                         <select id="exportCondoSelect" class="w-full">
                             <option value="all">Todos os Condomínios</option>
@@ -131,7 +143,7 @@
             </div>
 
             <div id="adminCondoList" class="list-container">
-                 <!-- Admin view of condos with entry counts -->
+                 <!-- Admin view of condos -->
             </div>
         </section>
 
@@ -145,7 +157,7 @@
                 <button type="button" class="btn-close-modal" id="btnCloseScanner"><i class="fas fa-times"></i></button>
             </div>
             <div class="scanner-container" id="reader"></div>
-            <p class="text-center text-sm mt-3 op-7">Aponte a câmera para o código de barras ou QR Code.</p>
+            <p class="text-center text-sm mt-3 op-7">Aponte a câmera (Traseira) para o código de barras ou QR.</p>
         </div>
     </div>
 
@@ -176,9 +188,17 @@
                 </select>
                 <button type="button" class="btn-icon text-danger btn-remove-meter"><i class="fas fa-trash"></i></button>
             </div>
-            <div class="scan-input">
-                <input type="text" class="meter-serial" placeholder="Nº de Série" required>
-                <button type="button" class="btn-scan" data-target="dynamic"><i class="fas fa-qrcode"></i></button>
+            <div class="input-group mb-2">
+                <div class="scan-input">
+                    <input type="text" class="meter-serial" placeholder="Série do Medidor" required>
+                    <button type="button" class="btn-scan" data-target="dynamic"><i class="fas fa-qrcode"></i></button>
+                </div>
+            </div>
+            <div class="input-group">
+                <div class="scan-input">
+                    <input type="text" class="meter-transmitter" placeholder="Série do Transmissor">
+                    <button type="button" class="btn-scan" data-target="dynamic"><i class="fas fa-qrcode"></i></button>
+                </div>
             </div>
         </div>
     </template>

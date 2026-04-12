@@ -30,9 +30,9 @@ const ExportService = {
                 { header: 'Data/Hora', key: 'dataHora', width: 20 },
                 { header: 'Bloco', key: 'bloco', width: 10 },
                 { header: 'Apto', key: 'apto', width: 10 },
-                { header: 'Tipo Medidor', key: 'tipo', width: 20 },
+                { header: 'Tipo Equipamento', key: 'tipo', width: 20 },
                 { header: 'Número de Série', key: 'serie', width: 25 },
-                { header: 'Transmissor', key: 'transmissor', width: 20 },
+                { header: 'Série Transmissor', key: 'transmissor', width: 25 },
                 { header: 'Latitude GPS', key: 'lat', width: 15 },
                 { header: 'Longitude GPS', key: 'lng', width: 15 }
             ];
@@ -52,7 +52,6 @@ const ExportService = {
                     dataHora: new Date(unit.createdAt).toLocaleString('pt-BR'),
                     bloco: unit.bloco,
                     apto: unit.apto,
-                    transmissor: unit.data_full.transmitter || 'N/A',
                     lat: unit.data_full.gps ? unit.data_full.gps.lat : 'N/A',
                     lng: unit.data_full.gps ? unit.data_full.gps.lng : 'N/A'
                 };
@@ -60,18 +59,33 @@ const ExportService = {
                 // Add Water Meters (1 row per meter)
                 if (unit.data_full.waterMeters && unit.data_full.waterMeters.length > 0) {
                     unit.data_full.waterMeters.forEach(wm => {
-                        worksheet.addRow({ ...baseRow, tipo: wm.type, serie: wm.serial });
+                        worksheet.addRow({ 
+                            ...baseRow, 
+                            tipo: wm.type, 
+                            serie: wm.serial,
+                            transmissor: wm.transmitter || 'N/A'
+                        });
                     });
                 }
 
                 // Add Gas Meter
                 if (unit.data_full.gasMeter) {
-                    worksheet.addRow({ ...baseRow, tipo: 'Gás', serie: unit.data_full.gasMeter });
+                    worksheet.addRow({ 
+                        ...baseRow, 
+                        tipo: 'Gás', 
+                        serie: unit.data_full.gasMeter.serial,
+                        transmissor: unit.data_full.gasMeter.transmitter || 'N/A'
+                    });
                 }
 
                 // Add Power Meter
                 if (unit.data_full.powerMeter) {
-                    worksheet.addRow({ ...baseRow, tipo: 'Energia', serie: unit.data_full.powerMeter });
+                    worksheet.addRow({ 
+                        ...baseRow, 
+                        tipo: 'Energia', 
+                        serie: unit.data_full.powerMeter.serial,
+                        transmissor: unit.data_full.powerMeter.transmitter || 'N/A'
+                    });
                 }
             });
 

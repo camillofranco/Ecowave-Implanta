@@ -40,13 +40,12 @@ const App = {
              ExportService.generateExcel(condoId);
         });
 
-        // Global Scanner delegation for dynamically added buttons
+        // Global Scanner delegation
         document.addEventListener('click', (e) => {
             const scanBtn = e.target.closest('.btn-scan');
             if (scanBtn) {
                 let targetId = scanBtn.getAttribute('data-target');
                 if (targetId === 'dynamic') {
-                    // It's a dynamic water meter row, find the input sibling
                     const parent = scanBtn.closest('.scan-input');
                     const input = parent.querySelector('input');
                     ScannerService.startScanner(input);
@@ -141,23 +140,35 @@ const App = {
             const gps = await this.getCurrentPosition();
 
             // Collect Data
+            const iptGas = document.getElementById('iptGas').value.trim();
+            const iptPower = document.getElementById('iptPower').value.trim();
+
             const formData = {
                 condoId: parseInt(document.getElementById('condoId').value),
                 bloco: document.getElementById('iptBloco').value.trim(),
                 apto: document.getElementById('iptApto').value.trim(),
-                gasMeter: document.getElementById('iptGas').value.trim() || null,
-                powerMeter: document.getElementById('iptPower').value.trim() || null,
-                transmitter: document.getElementById('iptTransmitter').value.trim() || null,
+                
+                gasMeter: iptGas ? {
+                    serial: iptGas,
+                    transmitter: document.getElementById('iptGasTransmitter').value.trim() || null
+                } : null,
+                
+                powerMeter: iptPower ? {
+                    serial: iptPower,
+                    transmitter: document.getElementById('iptPowerTransmitter').value.trim() || null
+                } : null,
+                
                 waterMeters: [],
                 gps: gps
             };
 
-            const meterItems = document.querySelectorAll('.meter-item');
+            const meterItems = document.querySelectorAll('#waterMetersList .meter-item');
             meterItems.forEach(item => {
                 const type = item.querySelector('.meter-type').value;
                 const serial = item.querySelector('.meter-serial').value.trim();
+                const transmitter = item.querySelector('.meter-transmitter').value.trim() || null;
                 if (serial) {
-                    formData.waterMeters.push({ type, serial });
+                    formData.waterMeters.push({ type, serial, transmitter });
                 }
             });
 
@@ -193,7 +204,7 @@ const App = {
                 },
                 (err) => {
                     console.warn(`GPS Error: ${err.message}`);
-                    resolve(null); // Resolve to null if user denies
+                    resolve(null);
                 },
                 { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
             );

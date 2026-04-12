@@ -1,12 +1,12 @@
 // js/scanner.js
 // Handles camera barcode scanning using html5-qrcode
 
-let html5QrcodeScanner = null;
+let html5QrCode = null;
 let currentTargetInput = null;
 
 const ScannerService = {
     init() {
-        document.getElementById('btnCloseScanner').addEventListener('click', this.stopScanner);
+        document.getElementById('btnCloseScanner').addEventListener('click', () => this.stopScanner());
     },
 
     startScanner(inputId) {
@@ -14,26 +14,33 @@ const ScannerService = {
         const modal = document.getElementById('modalScanner');
         modal.style.display = 'flex';
 
-        if (!html5QrcodeScanner) {
-            html5QrcodeScanner = new Html5QrcodeScanner(
-                "reader", 
-                { fps: 10, qrbox: {width: 250, height: 100}, supportedScanTypes: [
-                    Html5QrcodeScanType.SCAN_TYPE_CAMERA
-                ]}, 
-                /* verbose= */ false
-            );
+        if (!html5QrCode) {
+            html5QrCode = new Html5Qrcode("reader");
         }
 
-        html5QrcodeScanner.render(this.onScanSuccess, this.onScanFailure);
+        html5QrCode.start(
+            { facingMode: "environment" },
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 100 }
+            },
+            (decodedText, decodedResult) => this.onScanSuccess(decodedText, decodedResult),
+            (errorMessage) => this.onScanFailure(errorMessage)
+        )
+        .catch(err => {
+            console.error("Camera start error: ", err);
+            alert("Erro ao acessar a câmera traseira do dispositivo. Verifique as permissões de câmera do seu navegador.");
+            this.stopScanner();
+        });
     },
 
     stopScanner() {
         const modal = document.getElementById('modalScanner');
         modal.style.display = 'none';
         
-        if (html5QrcodeScanner) {
-            html5QrcodeScanner.clear().catch(error => {
-                console.error("Failed to clear html5QrcodeScanner. ", error);
+        if (html5QrCode && html5QrCode.isScanning) {
+            html5QrCode.stop().catch(error => {
+                console.error("Failed to stop scanner. ", error);
             });
         }
         currentTargetInput = null;
@@ -43,7 +50,6 @@ const ScannerService = {
         // Handle the scanned code
         if (currentTargetInput) {
             currentTargetInput.value = decodedText;
-            // Provide a tiny visual feedback
             currentTargetInput.style.backgroundColor = 'rgba(0, 230, 118, 0.2)';
             setTimeout(() => {
                 currentTargetInput.style.backgroundColor = '';
@@ -51,7 +57,7 @@ const ScannerService = {
         }
         
         // Stop scanning
-        ScannerService.stopScanner();
+        this.stopScanner();
         
         // Play a fake beep
         try {
@@ -66,8 +72,7 @@ const ScannerService = {
     },
 
     onScanFailure(error) {
-        // Handle scan failure, usually better to ignore and keep scanning
-        // console.warn(`Code scan error = ${error}`);
+        // Handle scan failure
     }
 };
 
