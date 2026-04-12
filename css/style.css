@@ -48,9 +48,13 @@ body {
     color: var(--primary);
 }
 .logo-img {
-    height: 28px;
+    height: 38px;
+    padding: 6px 14px;
+    background-color: #ffffff;
+    border-radius: 12px;
     margin-right: 8px;
     vertical-align: middle;
+    object-fit: contain;
 }
 
 /* Base UI Elements */
