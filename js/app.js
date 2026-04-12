@@ -143,8 +143,13 @@ const App = {
     async createNewCondo() {
         const name = prompt("Digite o nome do novo Condomínio/Projeto:");
         if (name && name.trim() !== '') {
-            await DBService.addCondominium(name.trim());
-            this.loadTechDashboard(); // Refresh
+            try {
+                await DBService.addCondominium(name.trim());
+                this.loadTechDashboard(); // Refresh
+            } catch (e) {
+                console.error("Firebase Auth Error:", e);
+                alert("Erro crítico no banco de dados Nuvem! Verifique no painel do Firebase (Firestore Database > Rules) se as regras estão como 'Modo de Teste' (allow read, write: if true;). Detalhe técnico: " + e.message);
+            }
         }
     },
 
