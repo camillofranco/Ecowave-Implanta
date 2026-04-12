@@ -90,10 +90,8 @@ const DBService = {
     compressImage(file) {
         return new Promise((resolve) => {
             const reader = new FileReader();
-            reader.readAsDataURL(file);
             reader.onload = event => {
                 const img = new Image();
-                img.src = event.target.result;
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
                     const MAX_WIDTH = 1080;
@@ -119,10 +117,14 @@ const DBService = {
                     ctx.drawImage(img, 0, 0, width, height);
 
                     canvas.toBlob((blob) => {
-                        resolve(blob);
+                        resolve(blob || file);
                     }, 'image/jpeg', 0.6); // Compress to 60% quality JPEG
                 };
+                img.onerror = () => resolve(file);
+                img.src = event.target.result;
             };
+            reader.onerror = () => resolve(file);
+            reader.readAsDataURL(file);
         });
     },
 
