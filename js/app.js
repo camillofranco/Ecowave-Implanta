@@ -44,6 +44,15 @@ const App = {
              ExportService.generateExcel(condoId);
         });
 
+        document.getElementById('btnExportZip').addEventListener('click', () => {
+             const condoId = document.getElementById('exportCondoSelect').value;
+             if (!condoId) {
+                 alert("Por favor, selecione um condomínio para exportar as fotos.");
+                 return;
+             }
+             ExportService.generateZip(condoId);
+        });
+
         // Global Scanner delegation
         document.addEventListener('click', (e) => {
             const scanBtn = e.target.closest('.btn-scan');

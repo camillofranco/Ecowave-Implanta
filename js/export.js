@@ -110,5 +110,83 @@ const ExportService = {
             console.error("Erro ao exportar Excel", error);
             alert("Ocorreu um erro ao gerar o arquivo Excel.");
         }
+    },
+
+    async generateZip(condoId) {
+        try {
+            const btn = document.getElementById('btnExportZip');
+            const progress = document.getElementById('zipProgress');
+            btn.disabled = true;
+            progress.style.display = 'block';
+            progress.innerText = "Preparando pacote... aguarde.";
+
+            const units = await DBService.getAllUnitsForExport(condoId);
+            const condos = await DBService.getCondominiums();
+            const condoMap = condos.reduce((acc, c) => { acc[c.id] = c.name; return acc; }, {});
+
+            if (units.length === 0) {
+                alert("Não há dados neste condomínio.");
+                btn.disabled = false;
+                progress.style.display = 'none';
+                return;
+            }
+
+            const zip = new JSZip();
+            const folder = zip.folder(`Fotos_${condoMap[condoId] || condoId}`);
+            let totalPhotos = 0;
+            let current = 0;
+
+            // Collect all targets
+            let targets = [];
+            units.forEach(unit => {
+                const prefix = `${unit.bloco}_Apto-${unit.apto}`;
+                if (unit.data_full.waterMeters) {
+                    unit.data_full.waterMeters.forEach((wm, idx) => {
+                        if (wm.photo) targets.push({ name: `${prefix}_Agua_${idx + 1}.jpg`, url: wm.photo });
+                    });
+                }
+                if (unit.data_full.gasMeter && unit.data_full.gasMeter.photo) {
+                    targets.push({ name: `${prefix}_Gas.jpg`, url: unit.data_full.gasMeter.photo });
+                }
+                if (unit.data_full.powerMeter && unit.data_full.powerMeter.photo) {
+                    targets.push({ name: `${prefix}_Energia.jpg`, url: unit.data_full.powerMeter.photo });
+                }
+            });
+
+            totalPhotos = targets.length;
+            if (totalPhotos === 0) {
+                alert("Nenhuma foto encontrada neste condomínio.");
+                btn.disabled = false;
+                progress.style.display = 'none';
+                return;
+            }
+
+            for (let t of targets) {
+                try {
+                    const response = await fetch(t.url);
+                    if (!response.ok) throw new Error("CORS/Download Blocked");
+                    const blob = await response.blob();
+                    folder.file(t.name, blob);
+                } catch (e) {
+                    console.warn("Failed to download image:", t.url);
+                }
+                current++;
+                progress.innerText = `Baixando ${current}/${totalPhotos} fotos...`;
+            }
+
+            progress.innerText = "Compactando arquivo ZIP...";
+            const zipBlob = await zip.generateAsync({ type: "blob" });
+            const filename = `Pacote_Fotos_${condoMap[condoId] || condoId}_${new Date().toISOString().split('T')[0]}.zip`;
+            saveAs(zipBlob, filename);
+
+            progress.innerText = "Concluído!";
+            setTimeout(() => { progress.style.display = 'none'; }, 3000);
+        } catch (error) {
+            console.error("Erro ao gerar ZIP", error);
+            alert("Ocorreu um erro ao baixar as fotos. Pode ser um bloqueio de segurança do servidor Firebase (CORS).");
+            document.getElementById('zipProgress').style.display = 'none';
+        } finally {
+            document.getElementById('btnExportZip').disabled = false;
+        }
     }
 };

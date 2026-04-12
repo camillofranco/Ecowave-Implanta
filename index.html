@@ -15,6 +15,7 @@
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
     <header class="top-nav">
@@ -155,6 +156,8 @@
                         </select>
                     </div>
                     <button id="btnExportExcel" class="btn-primary mt-3 w-full"><i class="fas fa-file-excel"></i> Baixar Relatório XLS</button>
+                    <button id="btnExportZip" class="btn-success mt-2 w-full"><i class="fas fa-file-archive"></i> Baixar Pacote de Fotos (ZIP)</button>
+                    <div id="zipProgress" style="display:none; font-size: 0.85rem; margin-top: 10px; color: var(--success);"></div>
                 </div>
             </div>
 
