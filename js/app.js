@@ -5,6 +5,7 @@ const ADMIN_PASSWORD = "eco"; // Initial simple password
 
 const App = {
     currentCondoId: null,
+    currentCondoName: null,
 
     init() {
         this.bindEvents();
@@ -21,7 +22,10 @@ const App = {
         });
         document.getElementById('btnSubmitAuth').addEventListener('click', () => this.handleAdminAuth());
 
-        document.getElementById('btnBackToTech').addEventListener('click', () => this.switchView('viewTechDashboard'));
+        // Navigation Back Buttons
+        document.getElementById('btnBackToCondos').addEventListener('click', () => this.switchView('viewTechDashboard'));
+        document.getElementById('btnBackToUnits').addEventListener('click', () => this.switchView('viewCondoUnits'));
+        
         document.getElementById('btnLogoutAdmin').addEventListener('click', () => {
             sessionStorage.removeItem('adminAuth');
             this.switchView('viewTechDashboard');
@@ -29,6 +33,7 @@ const App = {
 
         // Condo Management
         document.getElementById('btnNewCondo').addEventListener('click', () => this.createNewCondo());
+        document.getElementById('btnNewUnit').addEventListener('click', () => this.openInstallationForm());
 
         // Form Management
         document.getElementById('btnAddWaterMeter').addEventListener('click', () => this.addWaterMeterRow());
@@ -87,6 +92,8 @@ const App = {
         
         if (viewId === 'viewTechDashboard') {
             this.loadTechDashboard();
+        } else if (viewId === 'viewCondoUnits') {
+            this.loadCondoUnits();
         } else if (viewId === 'viewAdminDashboard') {
             this.loadAdminDashboard();
         }
@@ -94,7 +101,8 @@ const App = {
 
     async loadTechDashboard() {
         const listDiv = document.getElementById('condoList');
-        // keep loading state
+        // Initial feedback string since db takes time sometimes
+        listDiv.innerHTML = '<div class="empty-state">Sincronizando...</div>';
         
         try {
             const condos = await DBService.getCondominiums();
@@ -106,22 +114,29 @@ const App = {
 
             listDiv.innerHTML = '';
             for (let c of condos) {
-                let count = await DBService.getUnitCountByCondo(c.id); // Firestore id
+                let count = 0;
+                try {
+                    count = await DBService.getUnitCountByCondo(c.id);
+                } catch(err) {
+                    console.warn("Could not get count for", c.id, err);
+                }
+
                 const div = document.createElement('div');
                 div.className = 'list-item';
                 div.innerHTML = `
                     <div>
                         <div class="list-item-title">${c.name}</div>
-                        <div class="list-item-subtitle">${new Date(c.createdAt).toLocaleDateString('pt-BR')} • ${count} unidades registradas</div>
+                        <div class="list-item-subtitle">${count} unidades já implantadas</div>
                     </div>
-                    <button class="btn-primary" onclick="App.openInstallationForm('${c.id}', '${c.name.replace(/'/g, "\\'")}')">
-                        + Unidade
+                    <button class="btn-primary" onclick="App.openCondoUnits('${c.id}', '${c.name.replace(/'/g, "\\'")}')">
+                        Acessar
                     </button>
                 `;
                 listDiv.appendChild(div);
             }
         } catch(e) {
-             listDiv.innerHTML = '<div class="empty-state">Carregando condomínios da nuvem... (Verifique a permissão do banco)</div>';
+             console.error(e);
+             listDiv.innerHTML = '<div class="empty-state">Ocorreu um erro ao carregar os dados. Recarregue a página.</div>';
         }
     },
 
@@ -129,15 +144,54 @@ const App = {
         const name = prompt("Digite o nome do novo Condomínio/Projeto:");
         if (name && name.trim() !== '') {
             await DBService.addCondominium(name.trim());
-            this.loadTechDashboard();
+            this.loadTechDashboard(); // Refresh
         }
     },
 
-    openInstallationForm(condoId, condoName) {
+    // Step 2: Open specific Condominium to view completed units
+    async openCondoUnits(condoId, condoName) {
         this.currentCondoId = condoId;
-        document.getElementById('condoId').value = condoId;
-        document.getElementById('formCondoName').innerText = condoName;
-        
+        this.currentCondoName = condoName;
+        document.getElementById('unitsCondoName').innerText = condoName;
+        this.switchView('viewCondoUnits');
+    },
+
+    async loadCondoUnits() {
+        if (!this.currentCondoId) return;
+        const listDiv = document.getElementById('unitList');
+        listDiv.innerHTML = '<div class="empty-state">Carregando unidades...</div>';
+
+        try {
+            const units = await DBService.getUnitsByCondo(this.currentCondoId);
+            if (units.length === 0) {
+                listDiv.innerHTML = '<div class="empty-state">Nenhuma unidade cadastrada neste condomínio ainda.</div>';
+                return;
+            }
+
+            listDiv.innerHTML = '';
+            units.forEach(u => {
+                const div = document.createElement('div');
+                div.className = 'list-item';
+                div.innerHTML = `
+                    <div>
+                        <div class="list-item-title">Bloco ${u.bloco} - Apto ${u.apto}</div>
+                        <div class="list-item-subtitle" style="color:var(--text-muted); font-size:0.85rem;">
+                            Concluído em: ${new Date(u.createdAt).toLocaleDateString('pt-BR')} 
+                        </div>
+                    </div>
+                    <i class="fas fa-check-circle" style="color: var(--success); font-size: 1.5rem;"></i>
+                `;
+                listDiv.appendChild(div);
+            });
+        } catch(e) {
+            console.error(e);
+            listDiv.innerHTML = '<div class="empty-state">Erro ao carregar unidades.</div>';
+        }
+    },
+
+    // Step 3: Open Form
+    openInstallationForm() {
+        document.getElementById('condoId').value = this.currentCondoId;
         // Reset Form
         document.getElementById('installationForm').reset();
         document.getElementById('waterMetersList').innerHTML = '';
@@ -147,7 +201,6 @@ const App = {
         });
         
         this.addWaterMeterRow(); // At least one water meter by default
-
         this.switchView('viewInstallationForm');
     },
 
@@ -241,7 +294,7 @@ const App = {
             alert(`✅ Unidade ${formData.bloco}-${formData.apto} registrada com sucesso na nuvem!`);
             
             // Return to Tech Dashboard
-            this.switchView('viewTechDashboard');
+            this.switchView('viewCondoUnits');
 
         } catch (error) {
             console.error(error);
@@ -323,8 +376,24 @@ const App = {
                     <div class="list-item-title">${c.name}</div>
                     <div class="list-item-subtitle">${count} unidades totais na nuvem.</div>
                 </div>
+                <button class="btn-icon text-danger" title="Apagar Condomínio" onclick="App.deleteCondo('${c.id}', '${c.name.replace(/'/g, "\\'")}')">
+                    <i class="fas fa-trash"></i>
+                </button>
             `;
             listDiv.appendChild(div);
+        }
+    },
+
+    async deleteCondo(id, name) {
+        if (confirm(`Atenção Administrador: Tem certeza que quer EXCLUIR o Condomínio "${name}" em definitivo?\nIsso apagará todas as instalações dele!`)) {
+            try {
+                await DBService.deleteCondominium(id);
+                this.loadAdminDashboard();
+                this.loadTechDashboard(); // Pre-load tech if switched
+            } catch (e) {
+                console.error(e);
+                alert("Erro ao excluir. Tente novamente.");
+            }
         }
     }
 };

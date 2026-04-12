@@ -29,6 +29,18 @@ const DBService = {
         });
     },
 
+    async deleteCondominium(id) {
+        // First delete all units
+        const unitsSnapshot = await db.collection('units').where('condoId', '==', id).get();
+        const batch = db.batch();
+        unitsSnapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        // Delete condo
+        batch.delete(db.collection('condominiums').doc(id));
+        return await batch.commit();
+    },
+
     async getUnitsByCondo(condoId) {
         const snapshot = await db.collection('units').where('condoId', '==', condoId).get();
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));

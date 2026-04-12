@@ -40,11 +40,27 @@
             </div>
         </section>
 
+        <!-- View: Technician Condo Units List -->
+        <section id="viewCondoUnits" class="view">
+            <div class="header-action">
+                <button id="btnBackToCondos" class="btn-icon"><i class="fas fa-arrow-left"></i></button>
+                <h2 id="unitsCondoName">Nome do Condomínio</h2>
+                <span class="spacer"></span>
+            </div>
+            
+            <button id="btnNewUnit" class="btn-primary w-full mb-4"><i class="fas fa-plus"></i> CADASTRAR NOVA UNIDADE</button>
+
+            <h3 class="mb-3" style="font-size: 1rem; color: var(--text-muted);"><i class="fas fa-check-circle text-success"></i> Unidades Já Cadastradas</h3>
+            <div id="unitList" class="list-container">
+                <!-- Unit items will be injected here -->
+            </div>
+        </section>
+
         <!-- View: Add Installation (Unit Form) -->
         <section id="viewInstallationForm" class="view">
             <div class="header-action">
-                <button id="btnBackToTech" class="btn-icon"><i class="fas fa-arrow-left"></i></button>
-                <h2 id="formCondoName">Nome do Condomínio</h2>
+                <button id="btnBackToUnits" class="btn-icon"><i class="fas fa-arrow-left"></i></button>
+                <h2 id="formCondoName">Nova Instalação</h2>
                 <span class="spacer"></span>
             </div>
 
