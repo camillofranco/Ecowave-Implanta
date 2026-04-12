@@ -100,9 +100,9 @@ const ExportService = {
             const buffer = await workbook.xlsx.writeBuffer();
             const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             
-            const filename = condoId === 'all' 
-                ? `Relatorio_Geral_Ecowave_${new Date().toISOString().split('T')[0]}.xlsx` 
-                : `Relatorio_Ecowave_${condoMap[condoId] || condoId}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            const dateStr = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+            const condoName = condoMap[condoId] || condoId;
+            const filename = `Implantação - ${condoName} - ${dateStr}.xlsx`;
 
             saveAs(blob, filename);
 
@@ -176,7 +176,9 @@ const ExportService = {
 
             progress.innerText = "Compactando arquivo ZIP...";
             const zipBlob = await zip.generateAsync({ type: "blob" });
-            const filename = `Pacote_Fotos_${condoMap[condoId] || condoId}_${new Date().toISOString().split('T')[0]}.zip`;
+            const dateStr = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+            const condoName = condoMap[condoId] || condoId;
+            const filename = `Implantação Fotos - ${condoName} - ${dateStr}.zip`;
             saveAs(zipBlob, filename);
 
             progress.innerText = "Concluído!";
