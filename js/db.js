@@ -74,17 +74,42 @@ const DBService = {
     // Upload photo to Firebase Storage and return public URL
     async uploadPhoto(file, path) {
         if (!file) return null;
-        try {
-            const compressedBlob = await this.compressImage(file);
-            const storageRef = storage.ref();
-            const photoRef = storageRef.child(`photos/${path}_${Date.now()}_${file.name}`);
-            const snapshot = await photoRef.put(compressedBlob);
-            const downloadURL = await snapshot.ref.getDownloadURL();
-            return downloadURL;
-        } catch (e) {
-            console.error("Upload error: ", e);
-            return null;
-        }
+        
+        const TIMEOUT_MS = 20000; // 20s Max limit
+        const uploadPromise = new Promise(async (resolve, reject) => {
+            try {
+                const compressedBlob = await this.compressImage(file);
+                const storageRef = storage.ref();
+                const photoRef = storageRef.child(`photos/${path}_${Date.now()}_${file.name}`);
+                
+                const uploadTask = photoRef.put(compressedBlob);
+                uploadTask.on('state_changed', 
+                    (snapshot) => {
+                        // Progress can be logged here
+                        let p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        console.log(`Uploading ${path}: ${p}%`);
+                    }, 
+                    (error) => {
+                        // Error handling (like unauthorized)
+                        reject(new Error(`Storage Error: ${error.message} (Verifique as Rules do Storage)`));
+                    }, 
+                    async () => {
+                        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                        resolve(downloadURL);
+                    }
+                );
+            } catch (e) {
+                reject(e);
+            }
+        });
+
+        return Promise.race([
+            uploadPromise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error(`Tempo limite (20s) excedido ao tentar enviar a foto. Isso ocorre se você não ativou o Test Mode no painel do Storage ou a rede desconectou.`)), TIMEOUT_MS))
+        ]).catch(e => {
+            console.error("Upload error wrapper: ", e);
+            throw e; // Rethrow to halt Promise.all
+        });
     },
 
     compressImage(file) {
