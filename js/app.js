@@ -226,17 +226,21 @@ const App = {
         
         const btnSubmit = e.target.querySelector('button[type="submit"]');
         btnSubmit.disabled = true;
-        btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> OBTENDO GPS E ENVIANDO FOTOS...';
+        btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> OBTENDO LOCALIZAÇÃO GPS...';
 
         try {
-            // Get GPS Data (Fast timeout so it doesn't hang)
+            // Get GPS Data
             const gps = await this.getCurrentPosition();
+
+            btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PREPARANDO FOTOS...';
 
             // Collect Files for Parallel Upload
             const uploadPromises = [];
             
             const gasFile = document.getElementById('iptGasPhoto') ? document.getElementById('iptGasPhoto').files[0] : null;
             const powerFile = document.getElementById('iptPowerPhoto') ? document.getElementById('iptPowerPhoto').files[0] : null;
+
+            btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ENVIANDO FOTOS PARA A NUVEM... (Aguarde)';
 
             let gasUpload = gasFile ? DBService.uploadPhoto(gasFile, 'gas') : Promise.resolve(null);
             let powerUpload = powerFile ? DBService.uploadPhoto(powerFile, 'power') : Promise.resolve(null);
@@ -256,6 +260,8 @@ const App = {
                 powerUpload, 
                 ...waterUploads
             ]);
+
+            btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> GRAVANDO FORMULÁRIO...';
 
             // Collect Data
             const iptGas = document.getElementById('iptGas').value.trim();
@@ -303,7 +309,7 @@ const App = {
 
         } catch (error) {
             console.error(error);
-            alert("Erro ao registrar unidade.");
+            alert("Erro ao registrar unidade. Motivo: " + error.message);
         } finally {
             btnSubmit.disabled = false;
             btnSubmit.innerHTML = '<i class="fas fa-check-circle"></i> SALVAR UNIDADE (BLOQUEAR)';
